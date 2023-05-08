@@ -10,21 +10,21 @@ const path = require('path');
 
 let filesCopy = [];
 
-function getCurrentFilenames() {
+function getCurrentFileNames() {
   readdir(__dirname, (_error, filesDirectory) => {
     if (_error) stdout.write(_error);
     if (filesDirectory.includes('files-copy')) {
-      readdir(path.join(__dirname, 'files-copy'), (error, files) => {
+      readdir(path.join(__dirname, 'files-copy'), (error, filesCopyNames) => {
         if (error) stdout.write(error);
         else {
-          filesCopy = files;
+          filesCopy = filesCopyNames;
         }
       });
     }
   });
 }
 
-getCurrentFilenames();
+getCurrentFileNames();
 
 mkdir(path.join(__dirname, 'files-copy'), { recursive: true }, (errorMkdir) => {
   if (errorMkdir) stdout.write(errorMkdir);
@@ -39,7 +39,7 @@ mkdir(path.join(__dirname, 'files-copy'), { recursive: true }, (errorMkdir) => {
               .then(() => {
                 files.forEach((file) => {
                   copyFile(path.join(__dirname, 'files', file), path.join(__dirname, 'files-copy', file), (errorCopyFile) => {
-                    if (errorCopyFile) stdout.write(errorCopyFile);
+                    if (errorCopyFile) throw errorCopyFile;
                   });
                 });
               })
@@ -49,7 +49,7 @@ mkdir(path.join(__dirname, 'files-copy'), { recursive: true }, (errorMkdir) => {
           });
           files.forEach((file) => {
             copyFile(path.join(__dirname, 'files', file), path.join(__dirname, 'files-copy', file), (errorCopyFile) => {
-              if (errorCopyFile) stdout.write(errorCopyFile);
+              if (errorCopyFile) throw errorCopyFile;
             });
           });
         }
