@@ -1,8 +1,11 @@
 /* eslint-disable linebreak-style */
 const {
+  stat,
   mkdir,
+  rm,
   readdir,
   readFile,
+  copyFile,
   createWriteStream,
   createReadStream,
 } = require('node:fs');
@@ -10,11 +13,75 @@ const fsPromises = require('fs').promises;
 const { stdout } = require('node:process');
 const path = require('path');
 
+async function makeDirectory(dir) {
+  let directoryNameOut = path.join(__dirname, 'project-dist', 'assets', dir);
+  let directoryNameIn = path.join(__dirname, 'assets', dir);
+  if (dir === 'assets') {
+    directoryNameOut = path.join(__dirname, 'project-dist', 'assets');
+    directoryNameIn = path.join(__dirname, 'assets');
+  }
+  fsPromises.mkdir(directoryNameOut)
+    .then(() => {
+      readdir(
+        directoryNameIn,
+        { withFileTypes: true },
+        (error, files) => {
+          if (error) stdout.write(error);
+          else {
+            files.forEach((file) => {
+              stat(
+                path.join(directoryNameIn, file.name),
+                (error1, stats) => {
+                  if (error1) stdout.write(error1);
+                  else if (stats.isFile()) {
+                    fsPromises.rm(
+                      path.join(directoryNameOut, file.name),
+                      { recursive: true, force: true },
+                    )
+                      .then(() => {
+                        copyFile(
+                          path.join(directoryNameIn, file.name),
+                          path.join(directoryNameOut, file.name),
+                          (errorCopyFile) => {
+                            if (errorCopyFile) stdout.write(errorCopyFile);
+                          },
+                        );
+                      })
+                      .catch((errorFsPromises) => {
+                        if (errorFsPromises) {
+                          stdout.write(errorFsPromises);
+                        }
+                      });
+                  } else if (stats.isDirectory()) {
+                    makeDirectory(file.name).catch(console.error);
+                  }
+                },
+              );
+            });
+          }
+        },
+      );
+    })
+    .catch((errorFsPromises) => {
+      if (errorFsPromises) {
+        rm(
+          directoryNameOut,
+          { recursive: true, force: true },
+          (errorRmdir) => {
+            stdout.write('errorRmdir', errorRmdir);
+            makeDirectory(dir);
+          },
+        );
+      }
+    });
+}
+
 mkdir(
   path.join(__dirname, 'project-dist'),
   { recursive: true },
   (errorMkdir) => {
     if (errorMkdir) stdout.write(errorMkdir);
+    makeDirectory('assets').catch(console.error);
   },
 );
 
